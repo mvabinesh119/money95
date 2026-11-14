@@ -501,6 +501,20 @@ canvas:focus:not(:focus-visible) {
   opacity: 1 !important;
   pointer-events: auto;
 }
+
+/* Google sign-in */
+.google-login{
+  width:100%;height:47px;margin-top:12px;border:1px solid var(--line2);
+  border-radius:25px;background:var(--s1);color:var(--text);
+  display:flex;align-items:center;justify-content:center;gap:11px;
+  font-size:12px;font-weight:800;transition:border-color .18s,transform .18s,background .18s;
+}
+.google-login:hover{border-color:var(--green);background:var(--s2);transform:translateY(-1px)}
+.google-login:disabled{opacity:.6;cursor:wait;transform:none}
+.google-login svg{width:18px;height:18px;flex:none}
+.login-divider{display:flex;align-items:center;gap:10px;margin:13px 0 0;color:var(--muted);font-size:10px}
+.login-divider:before,.login-divider:after{content:"";height:1px;flex:1;background:var(--line)}
+
 </style>
 <script>
 // ===== Theme engine (runs early to avoid a flash) =====
@@ -577,6 +591,16 @@ matchMedia('(prefers-color-scheme: light)').addEventListener?.('change', () => {
       <div class="login-error" id="loginError"></div>
       <button class="login-submit" type="submit" id="loginSubmit">Log in →</button>
     </form>
+    <div class="login-divider">OR</div>
+    <button class="google-login" type="button" id="googleLoginBtn">
+      <svg viewBox="0 0 48 48" aria-hidden="true">
+        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.93c-.58 2.96-2.26 5.48-4.72 7.18l7.62 5.91c4.45-4.11 7.15-10.16 7.15-17.56z"/>
+        <path fill="#FBBC05" d="M10.53 28.59A14.4 14.4 0 0 1 9.75 24c0-1.59.27-3.13.76-4.59l-7.98-6.19A23.9 23.9 0 0 0 0 24c0 3.87.93 7.52 2.56 10.78l7.97-6.19z"/>
+        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.9-5.89l-7.62-5.91c-2.12 1.42-4.84 2.26-8.28 2.26-6.26 0-11.57-4.22-13.46-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+      </svg>
+      <span>Continue with Google</span>
+    </button>
     <div class="login-foot" id="loginFoot">
       New to PaisaTrack?
       <button type="button" id="signupBtn">Create account</button>
@@ -1729,6 +1753,33 @@ $('loginForm').onsubmit = async e => {
     btn.textContent = authMode === 'login'
       ? 'Log in →'
       : 'Create account →';
+  }
+};
+
+// Google OAuth sign-in. Supabase returns the user to this same website URL.
+$('googleLoginBtn').onclick = async () => {
+  const btn = $('googleLoginBtn');
+  const label = btn.querySelector('span');
+  btn.disabled = true;
+  label.textContent = 'Connecting to Google…';
+  $('loginError').style.display = 'none';
+
+  try {
+    const redirectTo = window.location.origin + window.location.pathname;
+    const {error} = await db.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo }
+    });
+    if (error) {
+      authMessage(error.message);
+      btn.disabled = false;
+      label.textContent = 'Continue with Google';
+    }
+    // On success, Supabase redirects the browser to Google.
+  } catch (err) {
+    authMessage(err.message || 'Google sign-in could not be started.');
+    btn.disabled = false;
+    label.textContent = 'Continue with Google';
   }
 };
 
